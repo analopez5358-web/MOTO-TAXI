@@ -120,6 +120,20 @@
             color: var(--primary);
             font-weight: 500;
         }
+        .total-preview {
+            background-color: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px dashed var(--primary);
+            text-align: center;
+            font-size: 15px;
+        }
+        .total-preview span {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -176,7 +190,7 @@
 
                 <!-- Pasajeros -->
                 <label for="pasajeros">Cantidad de Pasajeros (1 al 5):</label>
-                <select id="pasajeros" required>
+                <select id="pasajeros" onchange="calcularTotalPreview()" required>
                     <option value="1">1 pasajero</option>
                     <option value="2">2 pasajeros</option>
                     <option value="3">3 pasajeros</option>
@@ -184,9 +198,14 @@
                     <option value="5">5 pasajeros</option>
                 </select>
 
-                <!-- Monto -->
-                <label for="monto">Dinero Generado en este Viaje (L.):</label>
-                <input type="number" id="monto" step="0.50" placeholder="Ej. 100" required>
+                <!-- Tarifa por persona -->
+                <label for="tarifa">Tarifa por Pasajero (L.):</label>
+                <input type="number" id="tarifa" step="0.50" placeholder="Ej. 20.00" oninput="calcularTotalPreview()" required>
+
+                <!-- Cálculo automático -->
+                <div class="total-preview">
+                    Total a cobrar en este viaje: <span id="totalCalculado">L. 0.00</span>
+                </div>
 
                 <button type="submit">Guardar Viaje</button>
             </form>
@@ -199,8 +218,9 @@
                 <thead>
                     <tr>
                         <th>Hora</th>
-                        <th>Ruta (Origen → Destino)</th>
+                        <th>Ruta</th>
                         <th>Pas.</th>
+                        <th>Tarifa/p</th>
                         <th>Total</th>
                         <th>Acción</th>
                     </tr>
@@ -220,6 +240,7 @@
         const totalViajesElem = document.getElementById('totalViajes');
         const totalPasajerosElem = document.getElementById('totalPasajeros');
         const totalDineroElem = document.getElementById('totalDinero');
+        const totalCalculadoElem = document.getElementById('totalCalculado');
 
         function toggleCustomInput(selectId, inputId) {
             const select = document.getElementById(selectId);
@@ -235,6 +256,13 @@
             }
         }
 
+        function calcularTotalPreview() {
+            const cantidadPasajeros = parseInt(document.getElementById('pasajeros').value) || 0;
+            const tarifaPorPasajero = parseFloat(document.getElementById('tarifa').value) || 0;
+            const total = cantidadPasajeros * tarifaPorPasajero;
+            totalCalculadoElem.textContent = `L. ${total.toFixed(2)}`;
+        }
+
         function actualizarDatos() {
             tablaViajes.innerHTML = '';
             let tViajes = viajes.length;
@@ -243,14 +271,15 @@
 
             viajes.forEach((viaje, index) => {
                 tPasajeros += parseInt(viaje.pasajeros);
-                tDinero += parseFloat(viaje.monto);
+                tDinero += parseFloat(viaje.montoTotal);
 
                 const fila = document.createElement('tr');
                 fila.innerHTML = `
                     <td>${viaje.hora}</td>
                     <td class="route-text">${viaje.origen} ➔ ${viaje.destino}</td>
                     <td>${viaje.pasajeros}</td>
-                    <td>L. ${parseFloat(viaje.monto).toFixed(2)}</td>
+                    <td>L. ${parseFloat(viaje.tarifa).toFixed(2)}</td>
+                    <td>L. ${parseFloat(viaje.montoTotal).toFixed(2)}</td>
                     <td><button class="btn-delete" onclick="eliminarViaje(${index})">X</button></td>
                 `;
                 tablaViajes.appendChild(fila);
@@ -274,17 +303,19 @@
             const customDestino = document.getElementById('customDestino').value;
             const destinoFinal = selectDestino === 'OTRO' ? customDestino : selectDestino;
 
-            const pasajeros = document.getElementById('pasajeros').value;
-            const monto = document.getElementById('monto').value;
+            const pasajeros = parseInt(document.getElementById('pasajeros').value);
+            const tarifa = parseFloat(document.getElementById('tarifa').value);
+            const montoTotal = pasajeros * tarifa;
             
             const ahora = new Date();
             const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            viajes.push({ hora, origen: origenFinal, destino: destinoFinal, pasajeros, monto });
+            viajes.push({ hora, origen: origenFinal, destino: destinoFinal, pasajeros, tarifa, montoTotal });
             
             form.reset();
             toggleCustomInput('origen', 'customOrigen');
             toggleCustomInput('destino', 'customDestino');
+            calcularTotalPreview();
             actualizarDatos();
         });
 
