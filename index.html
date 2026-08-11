@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Taxi</title>
+    <title>Control de Moto-Taxi</title>
     <style>
         :root {
             --primary: #f59e0b;
@@ -20,7 +20,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
         }
         h1 {
@@ -98,7 +98,7 @@
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid #334155;
-            font-size: 14px;
+            font-size: 13px;
         }
         th {
             color: var(--text-secondary);
@@ -113,12 +113,19 @@
             font-size: 12px;
             width: auto;
         }
+        .custom-input {
+            display: none;
+        }
+        .route-text {
+            color: var(--primary);
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Control de Taxi</h1>
+        <h1>Control de Moto-Taxi</h1>
 
         <!-- Resumen -->
         <div class="stats-grid">
@@ -132,7 +139,7 @@
             </div>
             <div class="stat-box">
                 <h3>Ingresos</h3>
-                <p id="totalDinero">L. 0</p>
+                <p id="totalDinero">L. 0.00</p>
             </div>
         </div>
 
@@ -140,6 +147,34 @@
         <div class="card">
             <h2>Registrar Nuevo Viaje</h2>
             <form id="tripForm">
+                
+                <!-- Punto Inicial -->
+                <label for="origen">Punto Inicial (Origen):</label>
+                <select id="origen" onchange="toggleCustomInput('origen', 'customOrigen')" required>
+                    <option value="EL PUNTO">1. EL PUNTO</option>
+                    <option value="GUANGOLOLO">2. GUANGOLOLO</option>
+                    <option value="RIO HONDO">3. RIO HONDO</option>
+                    <option value="LA GUADALUPE">4. LA GUADALUPE</option>
+                    <option value="NUEVAS FLORES">5. NUEVAS FLORES</option>
+                    <option value="MONTE REDONDO">6. MONTE REDONDO</option>
+                    <option value="OTRO">Otro (Escribir lugar)</option>
+                </select>
+                <input type="text" id="customOrigen" class="custom-input" placeholder="Especificar origen">
+
+                <!-- Destino -->
+                <label for="destino">Destino:</label>
+                <select id="destino" onchange="toggleCustomInput('destino', 'customDestino')" required>
+                    <option value="GUANGOLOLO">2. GUANGOLOLO</option>
+                    <option value="EL PUNTO">1. EL PUNTO</option>
+                    <option value="RIO HONDO">3. RIO HONDO</option>
+                    <option value="LA GUADALUPE">4. LA GUADALUPE</option>
+                    <option value="NUEVAS FLORES">5. NUEVAS FLORES</option>
+                    <option value="MONTE REDONDO">6. MONTE REDONDO</option>
+                    <option value="OTRO">Otro (Escribir lugar)</option>
+                </select>
+                <input type="text" id="customDestino" class="custom-input" placeholder="Especificar destino">
+
+                <!-- Pasajeros -->
                 <label for="pasajeros">Cantidad de Pasajeros (1 al 5):</label>
                 <select id="pasajeros" required>
                     <option value="1">1 pasajero</option>
@@ -149,6 +184,7 @@
                     <option value="5">5 pasajeros</option>
                 </select>
 
+                <!-- Monto -->
                 <label for="monto">Dinero Generado en este Viaje (L.):</label>
                 <input type="number" id="monto" step="0.50" placeholder="Ej. 100" required>
 
@@ -163,7 +199,8 @@
                 <thead>
                     <tr>
                         <th>Hora</th>
-                        <th>Pasajeros</th>
+                        <th>Ruta (Origen → Destino)</th>
+                        <th>Pas.</th>
                         <th>Total</th>
                         <th>Acción</th>
                     </tr>
@@ -184,6 +221,20 @@
         const totalPasajerosElem = document.getElementById('totalPasajeros');
         const totalDineroElem = document.getElementById('totalDinero');
 
+        function toggleCustomInput(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            const input = document.getElementById(inputId);
+
+            if (select.value === 'OTRO') {
+                input.style.display = 'block';
+                input.required = true;
+            } else {
+                input.style.display = 'none';
+                input.required = false;
+                input.value = '';
+            }
+        }
+
         function actualizarDatos() {
             tablaViajes.innerHTML = '';
             let tViajes = viajes.length;
@@ -197,6 +248,7 @@
                 const fila = document.createElement('tr');
                 fila.innerHTML = `
                     <td>${viaje.hora}</td>
+                    <td class="route-text">${viaje.origen} ➔ ${viaje.destino}</td>
                     <td>${viaje.pasajeros}</td>
                     <td>L. ${parseFloat(viaje.monto).toFixed(2)}</td>
                     <td><button class="btn-delete" onclick="eliminarViaje(${index})">X</button></td>
@@ -213,13 +265,26 @@
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
+            
+            const selectOrigen = document.getElementById('origen').value;
+            const customOrigen = document.getElementById('customOrigen').value;
+            const origenFinal = selectOrigen === 'OTRO' ? customOrigen : selectOrigen;
+
+            const selectDestino = document.getElementById('destino').value;
+            const customDestino = document.getElementById('customDestino').value;
+            const destinoFinal = selectDestino === 'OTRO' ? customDestino : selectDestino;
+
             const pasajeros = document.getElementById('pasajeros').value;
             const monto = document.getElementById('monto').value;
+            
             const ahora = new Date();
             const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            viajes.push({ hora, pasajeros, monto });
+            viajes.push({ hora, origen: origenFinal, destino: destinoFinal, pasajeros, monto });
+            
             form.reset();
+            toggleCustomInput('origen', 'customOrigen');
+            toggleCustomInput('destino', 'customDestino');
             actualizarDatos();
         });
 
