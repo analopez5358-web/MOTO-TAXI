@@ -11,6 +11,7 @@
             --card-bg: #1e293b;
             --text: #f8fafc;
             --text-secondary: #94a3b8;
+            --success: #10b981;
         }
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -89,6 +90,11 @@
         button:hover {
             opacity: 0.9;
         }
+        .btn-close-day {
+            background-color: var(--success);
+            color: #0f172a;
+            margin-top: 15px;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -134,6 +140,11 @@
             font-weight: bold;
             font-size: 18px;
         }
+        .card-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -141,10 +152,10 @@
     <div class="container">
         <h1>Control de Moto-Taxi</h1>
 
-        <!-- Resumen -->
+        <!-- Resumen del día actual -->
         <div class="stats-grid">
             <div class="stat-box">
-                <h3>Viajes</h3>
+                <h3>Viajes Hoy</h3>
                 <p id="totalViajes">0</p>
             </div>
             <div class="stat-box">
@@ -152,7 +163,7 @@
                 <p id="totalPasajeros">0</p>
             </div>
             <div class="stat-box">
-                <h3>Ingresos</h3>
+                <h3>Ingresos Hoy</h3>
                 <p id="totalDinero">L. 0.00</p>
             </div>
         </div>
@@ -211,35 +222,59 @@
             </form>
         </div>
 
-        <!-- Historial -->
+        <!-- Historial del Día -->
         <div class="card">
-            <h2>Historial del Día</h2>
+            <h2>Viajes de Hoy</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Hora</th>
                         <th>Ruta</th>
                         <th>Pas.</th>
-                        <th>Tarifa/p</th>
+                        <th>Tarifa</th>
                         <th>Total</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody id="tablaViajes">
-                    <!-- Los viajes se cargarán aquí automáticamente -->
+                    <!-- Viajes de hoy -->
+                </tbody>
+            </table>
+
+            <button type="button" class="btn-close-day" onclick="cerrarDia()">Cerrar Día y Guardar Jornada</button>
+        </div>
+
+        <!-- Registro Histórico de Días -->
+        <div class="card">
+            <h2>Historial de Días Anteriores</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Viajes</th>
+                        <th>Pasajeros</th>
+                        <th>Total Recaudado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaDias">
+                    <!-- Registro de días acumulados -->
                 </tbody>
             </table>
         </div>
+
     </div>
 
     <script>
-        // CONTRASEÑA PARA BORRAR VIAJES (Puedes cambiarla aquí)
+        // CONTRASEÑA DE ADMINISTRADOR
         const PIN_ADMIN = "1234";
 
         let viajes = JSON.parse(localStorage.getItem('viajes_taxi')) || [];
+        let registroDias = JSON.parse(localStorage.getItem('registro_dias_taxi')) || [];
 
         const form = document.getElementById('tripForm');
         const tablaViajes = document.getElementById('tablaViajes');
+        const tablaDias = document.getElementById('tablaDias');
         const totalViajesElem = document.getElementById('totalViajes');
         const totalPasajerosElem = document.getElementById('totalPasajeros');
         const totalDineroElem = document.getElementById('totalDinero');
@@ -267,6 +302,7 @@
         }
 
         function actualizarDatos() {
+            // Cargar Viajes del día
             tablaViajes.innerHTML = '';
             let tViajes = viajes.length;
             let tPasajeros = 0;
@@ -292,7 +328,22 @@
             totalPasajerosElem.textContent = tPasajeros;
             totalDineroElem.textContent = `L. ${tDinero.toFixed(2)}`;
 
+            // Cargar Historial de Días
+            tablaDias.innerHTML = '';
+            registroDias.forEach((dia, index) => {
+                const fila = document.createElement('tr');
+                fila.innerHTML = `
+                    <td>${dia.fecha}</td>
+                    <td>${dia.totalViajes}</td>
+                    <td>${dia.totalPasajeros}</td>
+                    <td>L. ${parseFloat(dia.totalDinero).toFixed(2)}</td>
+                    <td><button class="btn-delete" onclick="eliminarDia(${index})">X</button></td>
+                `;
+                tablaDias.appendChild(fila);
+            });
+
             localStorage.setItem('viajes_taxi', JSON.stringify(viajes));
+            localStorage.setItem('registro_dias_taxi', JSON.stringify(registroDias));
         }
 
         form.addEventListener('submit', (e) => {
@@ -324,13 +375,57 @@
 
         function eliminarViaje(index) {
             const passwordIngresada = prompt("Ingresa el PIN de administrador para borrar este viaje:");
-            
             if (passwordIngresada === PIN_ADMIN) {
                 viajes.splice(index, 1);
                 actualizarDatos();
                 alert("Viaje eliminado con éxito.");
             } else if (passwordIngresada !== null) {
-                alert("PIN incorrecto. No tienes permiso para borrar registros.");
+                alert("PIN incorrecto.");
+            }
+        }
+
+        function cerrarDia() {
+            if (viajes.length === 0) {
+                alert("No hay viajes registrados en el día para guardar.");
+                return;
+            }
+
+            const passwordIngresada = prompt("Ingresa el PIN de administrador para cerrar la jornada de hoy:");
+            if (passwordIngresada === PIN_ADMIN) {
+                let tPasajeros = 0;
+                let tDinero = 0;
+
+                viajes.forEach(v => {
+                    tPasajeros += parseInt(v.pasajeros);
+                    tDinero += parseFloat(v.montoTotal);
+                });
+
+                const hoy = new Date();
+                const fechaFormateada = hoy.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                registroDias.unshift({
+                    fecha: fechaFormateada,
+                    totalViajes: viajes.length,
+                    totalPasajeros: tPasajeros,
+                    totalDinero: tDinero
+                });
+
+                viajes = []; // Limpiar viajes del día
+                actualizarDatos();
+                alert("¡Jornada del día guardada en el historial con éxito!");
+            } else if (passwordIngresada !== null) {
+                alert("PIN incorrecto.");
+            }
+        }
+
+        function eliminarDia(index) {
+            const passwordIngresada = prompt("Ingresa el PIN de administrador para borrar este registro histórico:");
+            if (passwordIngresada === PIN_ADMIN) {
+                registroDias.splice(index, 1);
+                actualizarDatos();
+                alert("Registro del día eliminado.");
+            } else if (passwordIngresada !== null) {
+                alert("PIN incorrecto.");
             }
         }
 
