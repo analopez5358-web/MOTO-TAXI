@@ -233,6 +233,9 @@
     </div>
 
     <script>
+        // CONTRASEÑA PARA BORRAR VIAJES (Puedes cambiarla aquí)
+        const PIN_ADMIN = "1234";
+
         let viajes = JSON.parse(localStorage.getItem('viajes_taxi')) || [];
 
         const form = document.getElementById('tripForm');
@@ -320,8 +323,15 @@
         });
 
         function eliminarViaje(index) {
-            viajes.splice(index, 1);
-            actualizarDatos();
+            const passwordIngresada = prompt("Ingresa el PIN de administrador para borrar este viaje:");
+            
+            if (passwordIngresada === PIN_ADMIN) {
+                viajes.splice(index, 1);
+                actualizarDatos();
+                alert("Viaje eliminado con éxito.");
+            } else if (passwordIngresada !== null) {
+                alert("PIN incorrecto. No tienes permiso para borrar registros.");
+            }
         }
 
         actualizarDatos();
